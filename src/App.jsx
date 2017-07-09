@@ -94,17 +94,13 @@ class App extends Component {
 
   startHideTimer = () => {
     this.hideTimer = setTimeout(() => {
-      this.setState(
-        state => ({
-          ...state,
-          shownHalf: "hidden",
-          result: "late",
-          count: this.getCountForResult("late", state.count)
-        }),
-        () => {
-          this.startShowTimer();
-        }
-      );
+      this.setState(state => ({
+        ...state,
+        shownHalf: "hidden",
+        result: "late",
+        count: this.getCountForResult("late", state.count)
+      }));
+      this.startShowTimer();
     }, this.getHideTime());
   };
 
@@ -144,10 +140,15 @@ class App extends Component {
   };
 
   getCountForResult = (result, count) => {
-    return {
-      success: result === "correct" ? count.success + 1 : count.success,
-      failure: result === "correct" ? count.failure : count.failure + 1
-    };
+    return result === "correct"
+      ? {
+          ...count,
+          success: count.success + 1
+        }
+      : {
+          ...count,
+          failure: count.failure + 1
+        };
   };
 
   getResultAndCount = (shownHalf, clickedHalf, count) => {
