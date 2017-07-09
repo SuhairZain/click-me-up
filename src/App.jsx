@@ -42,12 +42,39 @@ class App extends Component {
 
     this.state = {
       shownHalf: "waiting",
-      result: undefined
+      result: undefined,
+      count: {
+        success: 0,
+        failure: 0
+      },
+      lastHideTime: 1000
     };
   }
 
   getShowTime = () => {
     return (1 + Math.random() * 2) * 1000;
+  };
+
+  getHideTime = () => {
+    const { lastHideTime } = this.state;
+    const { success, failure } = this.state.count;
+    const successPercentage = success / (success + failure);
+
+    let correctedTime;
+    if (success + failure === 0 || successPercentage === 0.8) {
+      correctedTime = lastHideTime;
+    } else if (successPercentage < 0.8) {
+      correctedTime = lastHideTime + 100;
+    } else {
+      correctedTime = lastHideTime - 100;
+    }
+
+    correctedTime = correctedTime <= 0 ? 100 : correctedTime;
+    this.setState(state => ({
+      ...state,
+      lastHideTime: correctedTime
+    }));
+    return correctedTime;
   };
 
   componentDidMount() {
@@ -71,13 +98,14 @@ class App extends Component {
         state => ({
           ...state,
           shownHalf: "hidden",
-          result: "late"
+          result: "late",
+          count: this.getCountForResult("late", state.count)
         }),
         () => {
           this.startShowTimer();
         }
       );
-    }, 1000);
+    }, this.getHideTime());
   };
 
   getStatusText = status => {
@@ -100,8 +128,8 @@ class App extends Component {
       ? styles.halfScreenShown
       : styles.halfScreenHidden;
 
-  getResultForClick = (currentHalf, clickedHalf) => {
-    switch (currentHalf) {
+  getResultForClick = (shownHalf, clickedHalf) => {
+    switch (shownHalf) {
       case "waiting":
         return "early";
       case "hidden":
@@ -115,6 +143,21 @@ class App extends Component {
     }
   };
 
+  getCountForResult = (result, count) => {
+    return {
+      success: result === "correct" ? count.success + 1 : count.success,
+      failure: result === "correct" ? count.failure : count.failure + 1
+    };
+  };
+
+  getResultAndCount = (shownHalf, clickedHalf, count) => {
+    const result = this.getResultForClick(shownHalf, clickedHalf);
+    return {
+      result,
+      count: this.getCountForResult(result, count)
+    };
+  };
+
   onClickContainer = event => {
     const clickedHalf = event.pageX < window.innerWidth / 2 ? "left" : "right";
     this.showTimer && clearTimeout(this.showTimer);
@@ -123,7 +166,7 @@ class App extends Component {
       state => ({
         ...state,
         shownHalf: "waiting",
-        result: this.getResultForClick(state.shownHalf, clickedHalf)
+        ...this.getResultAndCount(state.shownHalf, clickedHalf, state.count)
       }),
       () => {
         this.startShowTimer();
